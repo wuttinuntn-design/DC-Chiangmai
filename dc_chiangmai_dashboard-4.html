@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DC เชียงใหม่ — Operations Dashboard 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ══════════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════════ */
+:root {
+  --primary:#1B3A6B; --deep:#0F2444; --sky:#7AACD4;
+  --green:#4B8B3B;   --amber:#E8A020; --red:#C0392B; --teal:#2CBDBA;
+  --bg:#EFF4FB; --surface:#FFFFFF; --surface2:#F5F9FF;
+  --border:#D8E6F5; --border-strong:#B8CFE8;
+  --text:#0A1828; --text-sec:#334D72; --muted:#6A88AC;
+  --shadow-sm:0 1px 3px rgba(27,58,107,.06),0 2px 8px rgba(27,58,107,.07);
+  --shadow:0 1px 3px rgba(27,58,107,.06),0 4px 16px rgba(27,58,107,.09),inset 0 1px 0 #fff;
+  --shadow-hover:0 4px 12px rgba(27,58,107,.12),0 12px 32px rgba(27,58,107,.15);
+  --grad-sidebar:linear-gradient(180deg,#0D1E3A 0%,#0F2444 40%,#1B3A6B 100%);
+  --grad-card:linear-gradient(160deg,#FFFFFF 0%,#F5F9FF 100%);
+  --sidebar-w:210px;
+  --header-h:56px;
+  --font:'Kanit',sans-serif;
+}
+
+/* ── Reset ── */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.45;overflow:hidden}
+
+/* ══════════════════════════════════════════════════════
+   APP SHELL  ┌─ header (full width) ─────────────────┐
+              ├─ sidebar ──┬─ content ─────────────────┤
+              └────────────┴───────────────────────────┘
+══════════════════════════════════════════════════════ */
+#app-header {
+  position:fixed; top:0; left:0; right:0; height:var(--header-h); z-index:100;
+  background:linear-gradient(180deg,#FAFCFF 0%,#F0F5FD 100%);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px 0 16px;
+  box-shadow:0 1px 0 rgba(27,58,107,.06),0 2px 16px rgba(27,58,107,.08);
+}
+.logo-block{display:flex;align-items:center;gap:11px}
+.logo-box{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0F2444,#1B3A6B);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(27,58,107,.35),inset 0 1px 0 rgba(255,255,255,.12)}
+.logo-box svg{width:20px;height:20px}
+.logo-text-wrap .logo-title{font-size:.92rem;font-weight:700;color:var(--primary);line-height:1.2;letter-spacing:.01em}
+.logo-text-wrap .logo-sub{font-size:.6rem;color:var(--muted);letter-spacing:.04em}
+.header-right{display:flex;align-items:center;gap:8px}
+#datetime{font-size:.6rem;color:var(--muted);text-align:right;line-height:1.65;font-family:'IBM Plex Mono',monospace}
+.dark-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-sec);border-radius:8px;padding:5px 11px;font-size:.7rem;font-family:var(--font);font-weight:600;cursor:pointer;transition:.18s;white-space:nowrap}
+.dark-btn:hover{border-color:var(--sky);color:var(--primary);background:#EBF4FF}
+
+/* ══════════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════════ */
+#sidebar {
+  position:fixed; top:var(--header-h); left:0; bottom:0; width:var(--sidebar-w); z-index:90;
+  background:var(--grad-sidebar);
+  display:flex; flex-direction:column;
+  box-shadow:2px 0 20px rgba(0,0,0,.18);
+  overflow:hidden;
+}
+.sb-section-label {
+  font-size:.58rem; font-weight:700; color:rgba(255,255,255,.28);
+  text-transform:uppercase; letter-spacing:.12em;
+  padding:18px 16px 7px;
+}
+.sb-nav { display:flex; flex-direction:column; gap:2px; padding:0 8px; }
+.sb-btn {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:10px; border:none; cursor:pointer;
+  background:transparent; color:rgba(255,255,255,.52);
+  font-family:var(--font); font-size:.82rem; font-weight:500;
+  text-align:left; transition:all .18s; width:100%;
+  position:relative; overflow:hidden;
+}
+.sb-btn::before {
+  content:''; position:absolute; left:0; top:20%; bottom:20%; width:3px;
+  border-radius:0 3px 3px 0; background:var(--sky);
+  opacity:0; transition:opacity .18s;
+}
+.sb-btn:hover { color:rgba(255,255,255,.88); background:rgba(255,255,255,.08); }
+.sb-btn.active {
+  color:#fff; background:rgba(122,172,212,.18);
+  box-shadow:inset 0 0 0 1px rgba(122,172,212,.3);
+}
+.sb-btn.active::before { opacity:1; }
+.sb-icon {
+  width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:.9rem; flex-shrink:0;
+  background:rgba(255,255,255,.08); transition:.18s;
+}
+.sb-btn.active .sb-icon { background:rgba(122,172,212,.25); }
+.sb-btn:hover .sb-icon { background:rgba(255,255,255,.12); }
+.sb-label { flex:1; }
+.sb-pill {
+  font-size:.55rem; font-weight:700; padding:2px 6px; border-radius:5px;
+  background:rgba(122,172,212,.25); color:rgba(200,228,248,.85);
+  flex-shrink:0;
+}
+.sb-divider { height:1px; background:rgba(255,255,255,.07); margin:10px 16px; }
+
+/* Sidebar footer */
+.sb-footer {
+  margin-top:auto; padding:12px 16px;
+  border-top:1px solid rgba(255,255,255,.07);
+  font-size:.6rem; color:rgba(255,255,255,.25);
+  line-height:1.8;
+}
+.sb-footer b { color:rgba(255,255,255,.45); }
+
+/* ══════════════════════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════════════════════ */
+#main {
+  position:fixed; top:var(--header-h); left:var(--sidebar-w); right:0; bottom:0;
+  overflow:hidden; background:var(--bg);
+}
+.tab-panel { position:absolute; inset:0; display:none; padding:10px 14px; flex-direction:column; gap:7px; overflow:hidden; }
+.tab-panel.active { display:flex; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateX(6px)} to{opacity:1;transform:none} }
+
+/* ══════════════════════════════════════════════════════
+   KPI CARDS
+══════════════════════════════════════════════════════ */
+.kpi-row { display:flex; gap:8px; flex-shrink:0; }
+.kpi {
+  flex:1; background:var(--grad-card); border:1px solid var(--border);
+  border-radius:14px; padding:10px 13px 10px 15px;
+  display:flex; align-items:center; gap:11px;
+  box-shadow:var(--shadow); transition:transform .2s,box-shadow .22s,border-color .18s;
+  position:relative; overflow:hidden; min-width:0; cursor:default;
+}
+.kpi:hover { transform:translateY(-2px); box-shadow:var(--shadow-hover); border-color:var(--border-strong); }
+.kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:14px 0 0 14px; }
+.kpi.blue::before  { background:linear-gradient(180deg,#7AACD4,#1B3A6B); }
+.kpi.green::before { background:linear-gradient(180deg,#4B8B3B,#2D5C25); }
+.kpi.amber::before { background:linear-gradient(180deg,#E8A020,#C07010); }
+.kpi.red::before   { background:linear-gradient(180deg,#C0392B,#8B2010); }
+.kpi.teal::before  { background:linear-gradient(180deg,#2CBDBA,#1A8A88); }
+.kpi-icon { width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,.14); }
+.kpi-icon.blue  { background:#1B3A6B; color:#fff; }
+.kpi-icon.green { background:#4B8B3B; color:#fff; }
+.kpi-icon.amber { background:#E8A020; color:#fff; }
+.kpi-icon.red   { background:#C0392B; color:#fff; }
+.kpi-icon.teal  { background:#2CBDBA; color:#fff; }
+.kpi-body { flex:1; min-width:0; }
+.kpi-label { font-size:.58rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.07em; line-height:1.3; }
+.kpi-value { font-size:1.08rem; font-weight:700; color:var(--text); white-space:nowrap; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.25; }
+.kpi-sub   { font-size:.59rem; color:var(--muted); margin-top:1px; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.kpi-badge { font-size:.54rem; font-weight:700; padding:1px 6px; border-radius:5px; white-space:nowrap; display:inline-block; }
+.badge-blue  { background:rgba(27,58,107,.1);  color:var(--primary); }
+.badge-green { background:rgba(75,139,59,.1);  color:#2D5C25; }
+.badge-amber { background:rgba(232,160,32,.1); color:#7A4800; }
+.badge-teal  { background:rgba(44,189,186,.1); color:#0E7A78; }
+
+/* ══════════════════════════════════════════════════════
+   CHART CARDS
+══════════════════════════════════════════════════════ */
+.chart-row { display:grid; gap:8px; flex:1; min-height:0; }
+.col2 { grid-template-columns:1fr 1fr; }
+.col3 { grid-template-columns:1fr 1fr 1fr; }
+
+.chart-card {
+  background:var(--grad-card); border:1px solid var(--border); border-radius:14px;
+  padding:12px 15px 10px; display:flex; flex-direction:column; overflow:hidden; min-height:0;
+  box-shadow:var(--shadow); transition:box-shadow .22s,transform .22s,border-color .18s; position:relative;
+}
+.chart-card::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg,var(--primary),var(--sky),var(--teal));
+  border-radius:14px 14px 0 0; opacity:0; transition:opacity .22s;
+}
+.chart-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); border-color:var(--border-strong); }
+.chart-card:hover::after { opacity:1; }
+.chart-title {
+  font-size:.68rem; font-weight:700; color:var(--primary);
+  text-transform:uppercase; letter-spacing:.07em;
+  margin-bottom:8px; flex-shrink:0;
+  display:flex; align-items:center; gap:8px;
+}
+.ct-icon {
+  width:24px; height:24px; border-radius:7px; font-size:.82rem; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:#1B3A6B; color:#fff; box-shadow:0 2px 5px rgba(27,58,107,.28);
+}
+.chart-wrap { flex:1; position:relative; min-height:0; }
+.chart-wrap canvas { width:100%!important; height:100%!important; }
+.pbadge {
+  display:inline-flex; align-items:center;
+  background:linear-gradient(135deg,rgba(122,172,212,.15),rgba(27,58,107,.08));
+  color:var(--sky); font-size:.56rem; font-weight:700; padding:2px 7px;
+  border-radius:6px; border:1px solid rgba(122,172,212,.25); margin-left:auto; flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════════════════
+   PERIOD BAR — อยู่บน Content ในแต่ละ Tab
+══════════════════════════════════════════════════════ */
+.period-bar {
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:5px 8px 5px 12px;
+  box-shadow:var(--shadow-sm);
+}
+.period-bar-label {
+  font-size:.63rem; font-weight:700; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.08em; white-space:nowrap; margin-right:2px;
+}
+.period-seg {
+  display:flex; gap:2px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:8px; padding:2px;
+}
+.pb-btn {
+  background:transparent; border:none; color:var(--muted);
+  font-family:var(--font); font-size:.72rem; font-weight:600;
+  padding:4px 14px; border-radius:6px; cursor:pointer;
+  transition:all .16s; white-space:nowrap;
+}
+.pb-btn:hover { color:var(--text); background:rgba(27,58,107,.06); }
+.pb-btn.active {
+  background:var(--primary); color:#fff;
+  box-shadow:0 1px 5px rgba(27,58,107,.3);
+}
+/* เดือน dropdown */
+.period-month-select {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-family:var(--font);
+  font-size:.72rem; font-weight:600; padding:4px 10px;
+  outline:none; cursor:pointer; transition:.16s;
+  display:none; /* ซ่อนตอน YTD */
+}
+.period-month-select.show { display:block; }
+.period-month-select:hover,.period-month-select:focus { border-color:var(--sky); }
+/* MoM badge */
+.period-mom {
+  font-size:.62rem; font-weight:700; padding:3px 9px; border-radius:6px;
+  white-space:nowrap; margin-left:2px;
+}
+.period-mom.up { background:rgba(75,139,59,.1); color:#2D5C25; }
+.period-mom.dn { background:rgba(192,57,43,.1); color:#8B2010; }
+/* info label */
+.period-info { font-size:.62rem; color:var(--muted); margin-left:4px; white-space:nowrap; }
+.period-badge-pill {
+  margin-left:auto; font-size:.58rem; font-weight:700; padding:2px 8px;
+  border-radius:6px; background:rgba(27,58,107,.08); color:var(--primary); white-space:nowrap;
+}
+/* dark */
+body.dark .period-bar { background:var(--surface); border-color:var(--border); }
+body.dark .period-seg { background:var(--surface2); border-color:var(--border); }
+body.dark .pb-btn:hover { background:rgba(122,172,212,.08); color:var(--text); }
+body.dark .pb-btn.active { background:#2A5090; }
+body.dark .period-month-select { background:var(--surface2); border-color:var(--border); color:var(--text); }
+body.dark .period-month-select:hover { border-color:#7AACD4; }
+body.dark .period-mom.up { background:rgba(109,184,90,.15); color:#9ED88A; }
+body.dark .period-mom.dn { background:rgba(192,57,43,.15); color:#F4A898; }
+body.dark .period-badge-pill { background:rgba(122,172,212,.12); color:#A8CBE8; }
+.filter-bar {
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:7px 15px; box-shadow:var(--shadow-sm);
+}
+.filter-label { font-size:.65rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; white-space:nowrap; }
+.filter-sep   { width:1px; height:18px; background:var(--border); flex-shrink:0; }
+.fmode-group  { display:flex; gap:3px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:2px; }
+.fmode-btn    { background:transparent; border:none; color:var(--muted); font-family:var(--font); font-size:.7rem; font-weight:600; padding:4px 12px; border-radius:6px; cursor:pointer; transition:.16s; white-space:nowrap; }
+.fmode-btn:hover  { color:var(--text); background:var(--border); }
+.fmode-btn.active { background:var(--primary); color:#fff; box-shadow:0 1px 4px rgba(27,58,107,.3); }
+.filter-select {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  color:var(--text); font-family:var(--font); font-size:.76rem; font-weight:500;
+  padding:5px 10px; outline:none; cursor:pointer; transition:.18s;
+  min-width:170px; max-width:260px;
+}
+.filter-select:hover,.filter-select:focus { border-color:var(--sky); }
+.filter-select:disabled { opacity:.45; cursor:not-allowed; }
+.filter-info  { font-size:.62rem; color:var(--muted); margin-left:auto; white-space:nowrap; }
+
+/* ══════════════════════════════════════════════════════
+   DARK MODE
+══════════════════════════════════════════════════════ */
+body.dark {
+  --bg:#0D1117; --surface:#161B22; --surface2:#1C2330;
+  --border:#2D3748; --border-strong:#4A5568;
+  --text:#E2E8F0; --text-sec:#A0AEC0; --muted:#718096;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.4);
+  --shadow:0 2px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-hover:0 8px 28px rgba(0,0,0,.55);
+  --grad-card:linear-gradient(160deg,#1C2330 0%,#161B22 100%);
+  --grad-sidebar:linear-gradient(180deg,#050B14 0%,#090F1C 50%,#0D1525 100%);
+}
+body.dark { background:#0D1117; }
+body.dark #app-header { background:linear-gradient(180deg,#0D1117 0%,#111827 100%); border-color:#2D3748; }
+body.dark .logo-text-wrap .logo-title { color:#A8CBE8; }
+body.dark .logo-text-wrap .logo-sub   { color:#4A6A8A; }
+body.dark .dark-btn  { background:#1C2330; border-color:#2D3748; color:#8B9DB5; }
+body.dark .dark-btn:hover { border-color:#7AACD4; color:#A8CBE8; background:#1E2D42; }
+body.dark #datetime  { color:#4A6A8A; }
+
+body.dark .sb-btn { color:rgba(200,220,240,.4); }
+body.dark .sb-btn:hover { color:rgba(200,220,240,.8); background:rgba(255,255,255,.06); }
+body.dark .sb-btn.active { color:#E2E8F0; background:rgba(122,172,212,.15); box-shadow:inset 0 0 0 1px rgba(122,172,212,.25); }
+body.dark .sb-section-label { color:rgba(200,220,240,.2); }
+body.dark .sb-divider { background:rgba(255,255,255,.05); }
+body.dark .sb-footer { color:rgba(200,220,240,.2); border-color:rgba(255,255,255,.05); }
+body.dark .sb-footer b { color:rgba(200,220,240,.35); }
+
+body.dark .kpi { border-color:#2D3748; }
+body.dark .kpi:hover { border-color:#4A5568; background:linear-gradient(160deg,#1E2D42,#1A2535); }
+body.dark .kpi-value { color:#E2E8F0; }
+body.dark .kpi-label,.kpi-sub { color:#718096; }
+body.dark .badge-blue  { background:rgba(122,172,212,.15); color:#A8CBE8; }
+body.dark .badge-green { background:rgba(109,184,90,.15);  color:#9ED88A; }
+body.dark .badge-amber { background:rgba(240,184,48,.13);  color:#F5CE70; }
+body.dark .badge-teal  { background:rgba(44,189,186,.15);  color:#5EDBD8; }
+
+body.dark .chart-card  { border-color:#2D3748; }
+body.dark .chart-card:hover { border-color:#4A5568; background:linear-gradient(160deg,#1E2D42,#1A2535); }
+body.dark .chart-title { color:#A8CBE8; }
+body.dark .pbadge { background:rgba(122,172,212,.12); color:#7AACD4; border-color:rgba(122,172,212,.22); }
+
+body.dark .filter-bar    { background:#1C2330; border-color:#2D3748; }
+body.dark .fmode-group   { background:#161B22; border-color:#2D3748; }
+body.dark .fmode-btn:hover { background:#2D3748; color:#E2E8F0; }
+body.dark .fmode-btn.active { background:#2A5090; }
+body.dark .filter-select { background:#161B22; border-color:#2D3748; color:#E2E8F0; }
+body.dark .filter-select:hover { border-color:#7AACD4; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+   Breakpoints:
+   - Desktop  : > 1024px  → Sidebar ซ้าย + Content ขวา
+   - Tablet L : 769-1024  → Sidebar แคบลง (icon only) + Content
+   - Tablet P : 601-768   → Sidebar พับเป็น Tab แนวนอนบนสุด
+   - Mobile L : 481-600   → Tab แนวนอน + chart col1
+   - Mobile P : ≤ 480     → Tab แนวนอน + chart col1 + kpi 1 col
+══════════════════════════════════════════════════════ */
+
+/* ── Tablet Landscape: Sidebar icon-only (60px) ── */
+@media (max-width:1024px) and (min-width:769px) {
+  :root { --sidebar-w:64px; }
+
+  #sidebar { width:64px; overflow:visible; }
+  .sb-section-label { display:none; }
+  .sb-divider { margin:8px 10px; }
+  .sb-nav { padding:0 6px; }
+  .sb-btn {
+    padding:8px 0; border-radius:10px;
+    flex-direction:column; align-items:center; gap:4px;
+    justify-content:center;
+  }
+  .sb-label { display:none; }
+  .sb-pill  { display:none; }
+  .sb-icon  { width:36px; height:36px; font-size:1rem; }
+  .sb-footer { display:none; }
+
+  /* Tooltip ชื่อ tab เมื่อ hover */
+  .sb-btn { position:relative; }
+  .sb-btn::after {
+    content: attr(data-tooltip);
+    position:absolute; left:calc(100% + 8px); top:50%; transform:translateY(-50%);
+    background:#0F2444; color:#fff; font-size:.7rem; font-weight:600;
+    padding:4px 10px; border-radius:7px; white-space:nowrap;
+    opacity:0; pointer-events:none; transition:opacity .15s;
+    box-shadow:0 2px 8px rgba(0,0,0,.3); z-index:200;
+  }
+  .sb-btn:hover::after { opacity:1; }
+}
+
+/* ── Tablet Portrait + Mobile Landscape: Tab bar บนสุด ── */
+@media (max-width:768px) {
+  :root { --sidebar-w:0px; --header-h:52px; }
+
+  /* Sidebar → Tab bar แนวนอน */
+  #sidebar {
+    position:fixed; top:var(--header-h); left:0; right:0; bottom:auto;
+    width:100%; height:auto;
+    flex-direction:row; align-items:center;
+    padding:4px 10px; gap:4px;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+    overflow-x:auto; overflow-y:hidden;
+    scrollbar-width:none; z-index:80;
+  }
+  #sidebar::-webkit-scrollbar { display:none; }
+  #sidebar .sb-section-label { display:none; }
+  #sidebar .sb-divider {
+    width:1px; height:24px; background:rgba(255,255,255,.12);
+    margin:0 4px; flex-shrink:0;
+  }
+  #sidebar .sb-footer { display:none; }
+  #sidebar .sb-nav { flex-direction:row; padding:0; gap:2px; flex-shrink:0; }
+
+  .sb-btn {
+    flex-direction:row; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:8px;
+    font-size:.75rem; white-space:nowrap;
+    flex-shrink:0;
+  }
+  .sb-icon { width:22px; height:22px; font-size:.78rem; flex-shrink:0; }
+  .sb-label { display:block; }
+  .sb-pill { display:none; }
+
+  /* Main content เลื่อนลงใต้ sidebar tab bar */
+  #main {
+    top:calc(var(--header-h) + 48px);
+    left:0; overflow-y:auto; overflow-x:hidden;
+  }
+
+  /* Tab panels: scroll แนวตั้งปกติ */
+  .tab-panel {
+    position:static; overflow:visible; height:auto;
+    padding:8px 10px;
+  }
+  .tab-panel.active { display:flex; flex-direction:column; }
+
+  /* Charts: 2 col บน tablet portrait */
+  .chart-row.col2 { grid-template-columns:1fr 1fr; }
+  .chart-card { min-height:200px; }
+  .kpi-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+
+  /* Period bar: wrap ได้ */
+  .period-bar { flex-wrap:wrap; gap:6px; padding:6px 10px; }
+  .period-info { display:none; }
+  .filter-select { min-width:130px; max-width:180px; }
+}
+
+/* ── Mobile Portrait: col1 ── */
+@media (max-width:540px) {
+  :root { --header-h:48px; }
+
+  #app-header { padding:0 12px; }
+  .logo-text-wrap .logo-sub { display:none; }
+  .logo-title { font-size:.82rem; }
+  #datetime { display:none; }
+  .dark-btn { padding:4px 8px; font-size:.65rem; }
+
+  .sb-btn { padding:5px 9px; font-size:.7rem; gap:5px; }
+  .sb-icon { width:20px; height:20px; font-size:.7rem; }
+
+  /* Charts: 1 col */
+  .chart-row.col2, .chart-row.col3 { grid-template-columns:1fr; }
+  .chart-card { min-height:200px; }
+
+  /* KPI: 2 col ยังพอ */
+  .kpi-row { grid-template-columns:1fr 1fr; gap:5px; }
+  .kpi { padding:8px 9px 8px 12px; gap:8px; }
+  .kpi-icon { width:34px; height:34px; font-size:.9rem; }
+  .kpi-value { font-size:.92rem; }
+
+  /* Period bar: stack */
+  .period-bar { flex-wrap:wrap; gap:5px; }
+  .period-badge-pill { display:none; }
+  .filter-select { min-width:120px; }
+  .period-month-select { min-width:110px; }
+}
+
+/* ── Landscape ทุก mobile (height < 500) ── */
+@media (max-height:500px) and (max-width:900px) {
+  :root { --header-h:44px; }
+
+  #sidebar {
+    padding:2px 8px;
+  }
+  #main { top:calc(var(--header-h) + 40px); }
+
+  /* Chart สูงน้อยลง — landscape ใช้ 2 col */
+  .chart-row.col2 { grid-template-columns:1fr 1fr; }
+  .chart-card { min-height:160px; }
+  .kpi-row { grid-template-columns:repeat(4,1fr); gap:5px; }
+  .kpi-icon { width:30px; height:30px; font-size:.82rem; }
+  .kpi-value { font-size:.88rem; }
+  .kpi-label { font-size:.52rem; }
+  .tab-panel { padding:5px 8px; gap:5px; }
+  .chart-title { margin-bottom:4px; font-size:.62rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ TOP HEADER -->
+<header id="app-header">
+  <div class="logo-block">
+    <div class="logo-box">
+      <svg viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="16" height="11" rx="1.5"/>
+        <path d="M2 10h16M7 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+      </svg>
+    </div>
+    <div class="logo-text-wrap">
+      <div class="logo-title">DC เชียงใหม่</div>
+      <div class="logo-sub">Operations Dashboard &middot; 2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="datetime"></div>
+    <button class="dark-btn" onclick="toggleDark()">🌙 Dark</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════ SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-section-label">เมนูหลัก</div>
+  <div class="sb-nav">
+
+    <button class="sb-btn active" data-tab="overview" data-tooltip="ภาพรวม" onclick="switchTab('overview')">
+      <div class="sb-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/>
+          <rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/>
+          <rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/>
+          <rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/>
+        </svg>
+      </div>
+      <span class="sb-label">ภาพรวม</span>
+      <span class="sb-pill">ทั้งหมด</span>
+    </button>
+
+    <button class="sb-btn" data-tab="dc" data-tooltip="DC เชียงใหม่" onclick="switchTab('dc')">
+      <div class="sb-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M1 14V6l7-4 7 4v8H1z"/>
+          <rect x="5.5" y="9" width="5" height="5" rx=".8"/>
+        </svg>
+      </div>
+      <span class="sb-label">DC เชียงใหม่</span>
+    </button>
+
+  </div>
+
+  <div class="sb-divider"></div>
+  <div class="sb-section-label">กลุ่มสาขา</div>
+  <div class="sb-nav">
+
+    <button class="sb-btn" data-tab="shop" data-tooltip="Shop" onclick="switchTab('shop')">
+      <div class="sb-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M1.5 5.5h13L13 12H3L1.5 5.5z"/>
+          <path d="M5.5 5.5L6.5 2.5h3l1 3"/>
+          <circle cx="5.5" cy="14" r="1.2"/>
+          <circle cx="10.5" cy="14" r="1.2"/>
+        </svg>
+      </div>
+      <span class="sb-label">Shop</span>
+      <span class="sb-pill">10</span>
+    </button>
+
+    <button class="sb-btn" data-tab="droppoint" data-tooltip="Drop Point" onclick="switchTab('droppoint')">
+      <div class="sb-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.8 4.5 8.5 4.5 8.5S12.5 9.8 12.5 6c0-2.5-2-4.5-4.5-4.5z"/>
+          <circle cx="8" cy="6" r="1.6"/>
+        </svg>
+      </div>
+      <span class="sb-label">Drop Point</span>
+      <span class="sb-pill">15</span>
+    </button>
+
+  </div>
+
+  <div class="sb-footer">
+    <b>ข้อมูล JAN–APR 2026</b><br>
+    อัปเดตล่าสุด: เม.ย. 2026<br>
+    102 records
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════ MAIN CONTENT -->
+<main id="main">
+
+  <!-- ── OVERVIEW ── -->
+  <div class="tab-panel active" id="panel-overview">
+    <div class="period-bar" id="pbar-overview">
+      <span class="period-bar-label">📅 ช่วงเวลา</span>
+      <div class="period-seg">
+        <button class="pb-btn active" id="pb-ov-ytd"  onclick="setPeriod('ytd','overview')">ทั้งปี</button>
+        <button class="pb-btn"        id="pb-ov-month" onclick="setPeriod('month','overview')">รายเดือน</button>
+      </div>
+      <select class="period-month-select" id="ms-overview" onchange="setMonth(this.value,'overview')">
+        <option value="JAN">ม.ค. 2026</option>
+        <option value="FEB">ก.พ. 2026</option>
+        <option value="MAR">มี.ค. 2026</option>
+        <option value="APR" selected>เม.ย. 2026</option>
+      </select>
+      <span class="period-mom" id="mom-overview" style="display:none"></span>
+      <span class="period-info" id="pinfo-overview">JAN – APR 2026</span>
+      <span class="period-badge-pill" id="pbadge-overview">YTD · 4 เดือน</span>
+    </div>
+    <div class="kpi-row" id="kpi-overview"></div>
+    <div class="chart-row col2" style="flex:1;min-height:0">
+      <div class="chart-card">
+        <div class="chart-title"><div class="ct-icon">📈</div>ยอดขายรายเดือน (ภาพรวม)<span class="pbadge">JAN–APR 2026</span></div>
+        <div class="chart-wrap"><canvas id="ch-ov-revenue"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><div class="ct-icon">⚡</div>Productivity รายเดือน (Shop)<span class="pbadge">กล่อง/คน/วัน</span></div>
+        <div class="chart-wrap"><canvas id="ch-ov-prod"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row col2" style="flex:1;min-height:0">
+      <div class="chart-card">
+        <div class="chart-title"><div class="ct-icon">💰</div>ยอดขายตาม Sub DC (Top 10)<span class="pbadge">รวมทุกเดือน</span></div>
+        <div class="chart-wrap"><canvas id="ch-ov-rev-bar"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><div class="ct-icon">📦</div>กล่องรวมตาม Sub DC (Top 10)<span class="pbadge">รวมทุกเดือน</span></div>
+        <div class="chart-wrap"><canvas id="ch-ov-box-bar"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DC เชียงใหม่ ── -->
+  <div class="tab-panel" id="panel-dc">
+    <div class="period-bar" id="pbar-dc">
+      <span class="period-bar-label">📅 ช่วงเวลา</span>
+      <div class="period-seg">
+        <button class="pb-btn active" id="pb-dc-ytd"  onclick="setPeriod('ytd','dc')">ทั้งปี</button>
+        <button class="pb-btn"        id="pb-dc-month" onclick="setPeriod('month','dc')">รายเดือน</button>
+      </div>
+      <select class="period-month-select" id="ms-dc" onchange="setMonth(this.value,'dc')">
+        <option value="JAN">ม.ค. 2026</option>
+        <option value="FEB">ก.พ. 2026</option>
+        <option value="MAR">มี.ค. 2026</option>
+        <option value="APR" selected>เม.ย. 2026</option>
+      </select>
+      <span class="period-mom" id="mom-dc" style="display:none"></span>
+      <span class="period-info" id="pinfo-dc">JAN – APR 2026</span>
+      <span class="period-badge-pill" id="pbadge-dc">YTD · 4 เดือน</span>
+    </div>
+    <div class="kpi-row" id="kpi-dc"></div>
+    <div class="chart-row col2" style="flex:1;min-height:0">
+      <div class="chart-card">
+        <div class="chart-title"><div class="ct-icon">📈</div>ยอดขายรายเดือน — DC เชียงใหม่<span class="pbadge">JAN–APR 2026</span></div>
+        <div class="chart-wrap"><canvas id="ch-dc-revenue"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><div class="ct-icon">📦</div>กล่องรวมรายเดือน — DC เชียงใหม่<span class="pbadge">JAN–APR 2026</span></div>
+        <div class="chart-wrap"><canvas id="ch-dc-boxes"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SHOP ── -->
+  <div class="tab-panel" id="panel-shop">
+    <div class="period-bar">
+      <span class="period-bar-label">📅 ช่วงเวลา</span>
+      <div class="period-seg">
+        <button class="pb-btn active" id="pb-shop-ytd"  onclick="setPeriod('ytd','shop')">ทั้งปี</button>
+        <button class="pb-btn"        id="pb-shop-month" onclick="setPeriod('month','shop')">รายเดือน</button>
+      </div>
+      <select class="period-month-select" id="ms-shop" onchange="setMonth(this.value,'shop')">
+        <option value="JAN">ม.ค. 2026</option>
+        <option value="FEB">ก.พ. 2026</option>
+        <option value="MAR">มี.ค. 2026</option>
+        <option value="APR" selected>เม.ย. 2026</option>
+      </select>
+      <span class="period-mom" id="mom-shop" style="display:none"></span>
+      <div class="filter-sep"></div>
+      <span class="filter-label">🛍️ สาขา</span>
+      <div class="fmode-group">
+        <button class="fmode-btn active" id="shop-mode-all"    onclick="setShopMode('all')">ทั้งหมด</button>
+        <button class="fmode-btn"        id="shop-mode-single" onclick="setShopMode('single')">รายสาขา</button>
+      </div>
+      <select class="filter-select" id="shop-select" onchange="onShopSelect()" disabled>
+        <option value="">— เลือกสาขา —</option>
+      </select>
+      <span class="period-badge-pill" id="pbadge-shop">YTD · 4 เดือน</span>
+    </div>
+    <div class="kpi-row" id="kpi-shop"></div>
+
+    <div id="shop-view-all" style="display:contents">
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📈</div>ยอดขายรายเดือน — ทุก Shop<span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-revenue"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">⚡</div>Productivity รายเดือน — Shop<span class="pbadge">กล่อง/คน/วัน</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-prod"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">💰</div>ยอดขายตาม Shop<span class="pbadge">รวมทุกเดือน</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-rev-bar"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">⚡</div>Productivity ตาม Shop<span class="pbadge">กล่อง/คน/วัน</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-prod-bar"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="shop-view-single" style="display:none;flex:1;min-height:0;flex-direction:column;gap:7px">
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📈</div><span id="sh-title-rev">ยอดขายรายเดือน</span><span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-s-revenue"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📦</div><span id="sh-title-box">กล่องรายเดือน</span><span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-s-boxes"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">⚡</div><span id="sh-title-prod">Productivity รายเดือน</span><span class="pbadge">กล่อง/คน/วัน</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-s-prod"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">👥</div>กำลังคน & วันทำงาน<span class="pbadge">รายเดือน</span></div>
+          <div class="chart-wrap"><canvas id="ch-shop-s-mp"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DROP POINT ── -->
+  <div class="tab-panel" id="panel-droppoint">
+    <div class="period-bar">
+      <span class="period-bar-label">📅 ช่วงเวลา</span>
+      <div class="period-seg">
+        <button class="pb-btn active" id="pb-dp-ytd"  onclick="setPeriod('ytd','droppoint')">ทั้งปี</button>
+        <button class="pb-btn"        id="pb-dp-month" onclick="setPeriod('month','droppoint')">รายเดือน</button>
+      </div>
+      <select class="period-month-select" id="ms-droppoint" onchange="setMonth(this.value,'droppoint')">
+        <option value="JAN">ม.ค. 2026</option>
+        <option value="FEB">ก.พ. 2026</option>
+        <option value="MAR">มี.ค. 2026</option>
+        <option value="APR" selected>เม.ย. 2026</option>
+      </select>
+      <span class="period-mom" id="mom-droppoint" style="display:none"></span>
+      <div class="filter-sep"></div>
+      <span class="filter-label">📍 สาขา</span>
+      <div class="fmode-group">
+        <button class="fmode-btn active" id="dp-mode-all"    onclick="setDPMode('all')">ทั้งหมด</button>
+        <button class="fmode-btn"        id="dp-mode-single" onclick="setDPMode('single')">รายสาขา</button>
+      </div>
+      <select class="filter-select" id="dp-select" onchange="onDPSelect()" disabled>
+        <option value="">— เลือกสาขา —</option>
+      </select>
+      <span class="period-badge-pill" id="pbadge-droppoint">YTD · 4 เดือน</span>
+    </div>
+    <div class="kpi-row" id="kpi-dp"></div>
+
+    <div id="dp-view-all" style="display:contents">
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📈</div>ยอดขายรายเดือน — Drop Point<span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-dp-revenue"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📦</div>กล่องรวมรายเดือน — Drop Point<span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-dp-boxes"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">💰</div>ยอดขายตาม Drop Point<span class="pbadge">รวมทุกเดือน</span></div>
+          <div class="chart-wrap"><canvas id="ch-dp-rev-bar"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📦</div>กล่องรวมตาม Drop Point<span class="pbadge">รวมทุกเดือน</span></div>
+          <div class="chart-wrap"><canvas id="ch-dp-box-bar"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="dp-view-single" style="display:none;flex:1;min-height:0;flex-direction:column;gap:7px">
+      <div class="chart-row col2" style="flex:1;min-height:0">
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📈</div><span id="dp-title-rev">ยอดขายรายเดือน</span><span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-dp-s-revenue"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><div class="ct-icon">📦</div><span id="dp-title-box">กล่องรายเดือน</span><span class="pbadge">JAN–APR 2026</span></div>
+          <div class="chart-wrap"><canvas id="ch-dp-s-boxes"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════════════ SCRIPTS -->
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const RAW = [{"year":2026,"month":"JAN","subDC":"DC เชียงใหม่","group":"DC","totalBoxes":22959.0,"totalRevenue":4127587.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาไชยปราการ","group":"Drop Point","totalBoxes":1334.0,"totalRevenue":190390.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาแม่ริม","group":"Drop Point","totalBoxes":262.0,"totalRevenue":54820.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาเชียงดาว","group":"Drop Point","totalBoxes":1036.0,"totalRevenue":119470.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาม.ภานน","group":"Drop Point","totalBoxes":400.0,"totalRevenue":47765.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาช้างเผือก","group":"Drop Point","totalBoxes":48.0,"totalRevenue":3575.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาสี่แยกราชวงศ์","group":"Drop Point","totalBoxes":323.0,"totalRevenue":57675.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาแยกบวกครกศิวิไล","group":"Drop Point","totalBoxes":11.0,"totalRevenue":2000.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาสันกำแพงสายใหม่","group":"Drop Point","totalBoxes":121.0,"totalRevenue":17830.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาสันโป่ง-แม่ริม","group":"Drop Point","totalBoxes":49.0,"totalRevenue":4520.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สารภี","group":"Drop Point","totalBoxes":197.0,"totalRevenue":30720.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขา ถนนเชียงใหม่-หางดง","group":"Drop Point","totalBoxes":504.0,"totalRevenue":88795.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขา สันทรายหลวง","group":"Drop Point","totalBoxes":577.0,"totalRevenue":91780.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขา สี่แยกหนองหอย","group":"Drop Point","totalBoxes":46.0,"totalRevenue":9490.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Drop point สาขาแม่เจดีย์ จ.เชียงราย","group":"Drop Point","totalBoxes":108.0,"totalRevenue":21815.0,"workingDays":26,"manpower":0},{"year":2026,"month":"JAN","subDC":"Shop สันกำแพง","group":"Shop","totalBoxes":1486.0,"totalRevenue":276160.0,"workingDays":26,"manpower":3},{"year":2026,"month":"JAN","subDC":"Shop บ้านถวาย","group":"Shop","totalBoxes":1487.0,"totalRevenue":266345.0,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop แสงตะวัน","group":"Shop","totalBoxes":928.0,"totalRevenue":165170.0,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop มช.","group":"Shop","totalBoxes":1543.0,"totalRevenue":226829.5,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop รัตนโกสินทร์","group":"Shop","totalBoxes":1634.0,"totalRevenue":258185.0,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop ป่าแดด","group":"Shop","totalBoxes":1071.0,"totalRevenue":181305.0,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop หนองหอย","group":"Shop","totalBoxes":1035.0,"totalRevenue":174685.0,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop แม่โจ้","group":"Shop","totalBoxes":1713.0,"totalRevenue":281920.0,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Shop เวียงป่าเป้า","group":"Shop","totalBoxes":1550.0,"totalRevenue":237259.5,"workingDays":26,"manpower":2},{"year":2026,"month":"JAN","subDC":"Drop point สาขา บ้านสองแคว","group":"Drop Point","totalBoxes":2219.0,"totalRevenue":385975.0,"workingDays":26,"manpower":0},{"year":2026,"month":"FEB","subDC":"DC เชียงใหม่","group":"DC","totalBoxes":19714.0,"totalRevenue":3614087.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาไชยปราการ","group":"Drop Point","totalBoxes":1002.0,"totalRevenue":176970.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาแม่ริม","group":"Drop Point","totalBoxes":214.0,"totalRevenue":42680.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาเชียงดาว","group":"Drop Point","totalBoxes":894.0,"totalRevenue":124465.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาม.ภานน","group":"Drop Point","totalBoxes":345.0,"totalRevenue":45365.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาช้างเผือก","group":"Drop Point","totalBoxes":40.0,"totalRevenue":3310.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาสี่แยกราชวงศ์","group":"Drop Point","totalBoxes":213.0,"totalRevenue":33085.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาแยกบวกครกศิวิไล","group":"Drop Point","totalBoxes":11.0,"totalRevenue":2130.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาสันกำแพงสายใหม่","group":"Drop Point","totalBoxes":100.0,"totalRevenue":15030.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาสันโป่ง-แม่ริม","group":"Drop Point","totalBoxes":1.0,"totalRevenue":255.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สารภี","group":"Drop Point","totalBoxes":153.0,"totalRevenue":24275.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขา ถนนเชียงใหม่-หางดง","group":"Drop Point","totalBoxes":611.0,"totalRevenue":124625.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขา สันทรายหลวง","group":"Drop Point","totalBoxes":442.0,"totalRevenue":71885.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขา สี่แยกหนองหอย","group":"Drop Point","totalBoxes":38.0,"totalRevenue":7710.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Drop point สาขาแม่เจดีย์ จ.เชียงราย","group":"Drop Point","totalBoxes":123.0,"totalRevenue":23610.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Shop สันกำแพง","group":"Shop","totalBoxes":1297.0,"totalRevenue":234070.0,"workingDays":24,"manpower":3},{"year":2026,"month":"FEB","subDC":"Shop บ้านถวาย","group":"Shop","totalBoxes":1383.0,"totalRevenue":256930.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop แสงตะวัน","group":"Shop","totalBoxes":900.0,"totalRevenue":161030.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop มช.","group":"Shop","totalBoxes":1297.0,"totalRevenue":193636.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop รัตนโกสินทร์","group":"Shop","totalBoxes":1469.0,"totalRevenue":247820.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop ป่าแดด","group":"Shop","totalBoxes":916.0,"totalRevenue":156415.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop หนองหอย","group":"Shop","totalBoxes":949.0,"totalRevenue":168465.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop แม่โจ้","group":"Shop","totalBoxes":1604.0,"totalRevenue":249138.0,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Shop ฝาง","group":"Shop","totalBoxes":1083.0,"totalRevenue":237350.0,"workingDays":24,"manpower":0},{"year":2026,"month":"FEB","subDC":"Shop เวียงป่าเป้า","group":"Shop","totalBoxes":1168.0,"totalRevenue":194226.5,"workingDays":24,"manpower":2},{"year":2026,"month":"FEB","subDC":"Drop point สาขา บ้านสองแคว","group":"Drop Point","totalBoxes":1496.0,"totalRevenue":284725.0,"workingDays":24,"manpower":0},{"year":2026,"month":"MAR","subDC":"DC เชียงใหม่","group":"DC","totalBoxes":21699.0,"totalRevenue":4033674.5,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาไชยปราการ","group":"Drop Point","totalBoxes":836.0,"totalRevenue":147813.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาแม่ริม","group":"Drop Point","totalBoxes":209.0,"totalRevenue":42846.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาเชียงดาว","group":"Drop Point","totalBoxes":534.0,"totalRevenue":93262.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาม.ภานน","group":"Drop Point","totalBoxes":367.0,"totalRevenue":46322.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาช้างเผือก","group":"Drop Point","totalBoxes":36.0,"totalRevenue":2980.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาสี่แยกราชวงศ์","group":"Drop Point","totalBoxes":142.0,"totalRevenue":24487.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาแยกบวกครกศิวิไล","group":"Drop Point","totalBoxes":6.0,"totalRevenue":994.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาสันกำแพงสายใหม่","group":"Drop Point","totalBoxes":155.0,"totalRevenue":22068.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาสันโป่ง-แม่ริม","group":"Drop Point","totalBoxes":39.0,"totalRevenue":3235.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สารภี","group":"Drop Point","totalBoxes":146.0,"totalRevenue":25410.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขา ถนนเชียงใหม่-หางดง","group":"Drop Point","totalBoxes":527.0,"totalRevenue":96175.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขา สันทรายหลวง","group":"Drop Point","totalBoxes":494.0,"totalRevenue":83309.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขา สี่แยกหนองหอย","group":"Drop Point","totalBoxes":49.0,"totalRevenue":9995.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Drop point สาขาแม่เจดีย์ จ.เชียงราย","group":"Drop Point","totalBoxes":162.0,"totalRevenue":32430.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Shop สันกำแพง","group":"Shop","totalBoxes":1214.0,"totalRevenue":242849.0,"workingDays":26,"manpower":3},{"year":2026,"month":"MAR","subDC":"Shop บ้านถวาย","group":"Shop","totalBoxes":1557.0,"totalRevenue":291630.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop แสงตะวัน","group":"Shop","totalBoxes":971.0,"totalRevenue":174987.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop มช.","group":"Shop","totalBoxes":1129.0,"totalRevenue":179228.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop รัตนโกสินทร์","group":"Shop","totalBoxes":1474.0,"totalRevenue":244954.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop ป่าแดด","group":"Shop","totalBoxes":1017.0,"totalRevenue":178060.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop หนองหอย","group":"Shop","totalBoxes":1060.0,"totalRevenue":182255.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop แม่โจ้","group":"Shop","totalBoxes":1262.0,"totalRevenue":197329.0,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Shop ฝาง","group":"Shop","totalBoxes":943.0,"totalRevenue":202687.0,"workingDays":26,"manpower":0},{"year":2026,"month":"MAR","subDC":"Shop เวียงป่าเป้า","group":"Shop","totalBoxes":1365.0,"totalRevenue":235253.5,"workingDays":26,"manpower":2},{"year":2026,"month":"MAR","subDC":"Drop point สาขา บ้านสองแคว","group":"Drop Point","totalBoxes":1802.0,"totalRevenue":371705.0,"workingDays":26,"manpower":0},{"year":2026,"month":"APR","subDC":"DC เชียงใหม่","group":"DC","totalBoxes":16760.0,"totalRevenue":3421248.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาไชยปราการ","group":"Drop Point","totalBoxes":622.0,"totalRevenue":132180.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาแม่ริม","group":"Drop Point","totalBoxes":96.0,"totalRevenue":19289.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาเชียงดาว","group":"Drop Point","totalBoxes":343.0,"totalRevenue":71022.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาม.ภานน","group":"Drop Point","totalBoxes":248.0,"totalRevenue":36041.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาช้างเผือก","group":"Drop Point","totalBoxes":41.0,"totalRevenue":4077.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาสี่แยกราชวงศ์","group":"Drop Point","totalBoxes":150.0,"totalRevenue":24989.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาแยกบวกครกศิวิไล","group":"Drop Point","totalBoxes":2.0,"totalRevenue":462.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาสันกำแพงสายใหม่","group":"Drop Point","totalBoxes":47.0,"totalRevenue":6057.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาสันโป่ง-แม่ริม","group":"Drop Point","totalBoxes":43.0,"totalRevenue":7815.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สารภี","group":"Drop Point","totalBoxes":101.0,"totalRevenue":19188.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขา ถนนเชียงใหม่-หางดง","group":"Drop Point","totalBoxes":297.0,"totalRevenue":58320.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขา สันทรายหลวง","group":"Drop Point","totalBoxes":380.0,"totalRevenue":80358.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขา สี่แยกหนองหอย","group":"Drop Point","totalBoxes":40.0,"totalRevenue":9440.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Drop point สาขาแม่เจดีย์ จ.เชียงราย","group":"Drop Point","totalBoxes":145.0,"totalRevenue":29737.0,"workingDays":22,"manpower":0},{"year":2026,"month":"APR","subDC":"Shop สันกำแพง","group":"Shop","totalBoxes":1097.0,"totalRevenue":237222.0,"workingDays":22,"manpower":3},{"year":2026,"month":"APR","subDC":"Shop บ้านถวาย","group":"Shop","totalBoxes":1107.0,"totalRevenue":215223.0,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop แสงตะวัน","group":"Shop","totalBoxes":701.0,"totalRevenue":139161.0,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop มช.","group":"Shop","totalBoxes":1098.0,"totalRevenue":193403.5,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop รัตนโกสินทร์","group":"Shop","totalBoxes":1028.0,"totalRevenue":192748.0,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop ป่าแดด","group":"Shop","totalBoxes":770.0,"totalRevenue":152088.0,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop หนองหอย","group":"Shop","totalBoxes":693.0,"totalRevenue":127905.0,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop แม่โจ้","group":"Shop","totalBoxes":681.0,"totalRevenue":118255.0,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Shop เวียงป่าเป้า","group":"Shop","totalBoxes":757.0,"totalRevenue":145907.5,"workingDays":22,"manpower":2},{"year":2026,"month":"APR","subDC":"Drop point สาขา บ้านสองแคว","group":"Drop Point","totalBoxes":1215.0,"totalRevenue":281874.0,"workingDays":22,"manpower":0}];
+
+const MONTHS   = ["JAN","FEB","MAR","APR"];
+const MONTH_TH = {JAN:"ม.ค.",FEB:"ก.พ.",MAR:"มี.ค.",APR:"เม.ย."};
+const MONTH_TH_FULL = {JAN:"มกราคม",FEB:"กุมภาพันธ์",MAR:"มีนาคม",APR:"เมษายน"};
+const MONTH_ORDER   = {JAN:1,FEB:2,MAR:3,APR:4};
+const palette = ['#1B3A6B','#7AACD4','#4B8B3B','#E8A020','#C0392B','#2CBDBA','#5B92C0','#A8D5A2','#F6D373','#E08080'];
+const C = {
+  blue:'#1B3A6B', sky:'#7AACD4', green:'#4B8B3B', amber:'#E8A020', red:'#C0392B', teal:'#2CBDBA',
+  blueA:'rgba(27,58,107,.7)', skyA:'rgba(122,172,212,.7)', greenA:'rgba(75,139,59,.7)',
+  amberA:'rgba(232,160,32,.7)', tealA:'rgba(44,189,186,.7)'
+};
+
+// ── Format helpers ──
+const fmtBaht = v => '฿'+(v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0));
+const fmtNum  = v => v.toLocaleString('th-TH');
+const fmtProd = v => v.toFixed(2);
+const shortName = s => s.replace('Drop point สาขา ','').replace('Drop point สาขา','').replace('Drop point ','').replace('Shop ','').trim();
+
+// ── Data helpers ──
+const byGroup = g => RAW.filter(r => r.group === g);
+const filterP = (data, tab) => {
+  const s = periodState[tab];
+  return s.mode === 'ytd' ? data : data.filter(r => r.month === s.month);
+};
+const sumByMonth = (data, f) => MONTHS.map(m => data.filter(r=>r.month===m).reduce((a,r)=>a+r[f],0));
+const prodByMonth = data => MONTHS.map(m => {
+  const rows = data.filter(r=>r.month===m && r.manpower>0);
+  if(!rows.length) return null;
+  const boxes=rows.reduce((a,r)=>a+r.totalBoxes,0), mp=rows.reduce((a,r)=>a+r.manpower,0), wd=rows[0].workingDays;
+  return mp>0 ? boxes/(mp*wd) : null;
+});
+const sumBySubDC = (data, f, top=10) => {
+  const m={}; data.forEach(r=>{m[r.subDC]=(m[r.subDC]||0)+r[f];});
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,top);
+};
+const prodBySubDC = (data, top=10) => {
+  const m={};
+  data.filter(r=>r.manpower>0).forEach(r=>{
+    if(!m[r.subDC]) m[r.subDC]={boxes:0,mpWd:0};
+    m[r.subDC].boxes+=r.totalBoxes; m[r.subDC].mpWd+=r.manpower*r.workingDays;
+  });
+  return Object.entries(m).map(([k,v])=>[k, v.mpWd>0?v.boxes/v.mpWd:0]).sort((a,b)=>b[1]-a[1]).slice(0,top);
+};
+const getMoMTab = (data, field, tab) => {
+  const s = periodState[tab];
+  if(s.mode !== 'month') return null;
+  const order = MONTH_ORDER[s.month];
+  const prevM = Object.keys(MONTH_ORDER).find(k => MONTH_ORDER[k] === order-1);
+  if(!prevM) return null;
+  const cur  = data.filter(r=>r.month===s.month).reduce((a,r)=>a+r[field],0);
+  const prev = data.filter(r=>r.month===prevM ).reduce((a,r)=>a+r[field],0);
+  return prev ? ((cur-prev)/prev*100).toFixed(1) : null;
+};
+
+// ── KPI builder ──
+function buildKPI(id, cards) {
+  const el = document.getElementById(id); if(!el) return;
+  el.innerHTML = cards.filter(Boolean).map(c => `
+    <div class="kpi ${c.color}">
+      <div class="kpi-icon ${c.color}">${c.icon}</div>
+      <div class="kpi-body">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${c.value}</div>
+        <div class="kpi-sub">${c.sub||''}${c.badge?` <span class="kpi-badge badge-${c.bc||'blue'}">${c.badge}</span>`:''}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Chart helpers ──
+const gridColor = () => document.body.classList.contains('dark') ? 'rgba(255,255,255,.06)' : 'rgba(27,58,107,.06)';
+const tickColor = () => document.body.classList.contains('dark') ? '#4A6A8A' : '#6A88AC';
+const fmtTick   = v => v>=1e6?(v/1e6).toFixed(1)+'M' : v>=1e3?(v/1e3).toFixed(0)+'K' : v;
+const cDef = () => ({
+  plugins: {legend:{display:false}, tooltip:{bodyFont:{family:'Kanit'},titleFont:{family:'Kanit'}}},
+  animation: {duration:500, easing:'easeInOutQuart'},
+  responsive: true, maintainAspectRatio: false,
+  scales: {
+    x: {grid:{color:gridColor()}, ticks:{font:{family:'Kanit',size:11}, color:tickColor()}},
+    y: {grid:{color:gridColor()}, ticks:{font:{family:'Kanit',size:11}, color:tickColor(), callback:v=>fmtTick(v)}}
+  }
+});
+const lineDS = (label,data,color) => ({
+  label, data, borderColor:color, backgroundColor:color+'22', fill:true,
+  tension:.4, pointBackgroundColor:color, pointBorderColor:'#fff',
+  pointBorderWidth:2, pointRadius:4, pointHoverRadius:6, borderWidth:2.5
+});
+const barDS = (label,data,colors) => ({
+  label, data, backgroundColor:colors||C.skyA, borderRadius:6, borderSkipped:false, borderWidth:0
+});
+
+// ── Highlight helpers — ใช้เมื่อ mode='month' ──
+// hlLineDS: จุดเดือนที่เลือกใหญ่+สว่าง, จุดอื่นเล็ก+จาง, เส้นจางทั้งหมดยกเว้น segment ที่เลือก
+function hlLineDS(label, data, color, selMonth) {
+  const idx = MONTHS.indexOf(selMonth);
+  return {
+    label, data,
+    borderColor: color,
+    backgroundColor: color+'15',
+    fill: true,
+    tension: .4,
+    borderWidth: 2.5,
+    pointRadius:          MONTHS.map((_,i) => i===idx ? 8 : 3),
+    pointHoverRadius:     MONTHS.map((_,i) => i===idx ? 10 : 5),
+    pointBackgroundColor: MONTHS.map((_,i) => i===idx ? color : color+'44'),
+    pointBorderColor:     MONTHS.map((_,i) => i===idx ? '#fff' : 'transparent'),
+    pointBorderWidth:     MONTHS.map((_,i) => i===idx ? 2.5 : 0),
+    // segment coloring: เส้นที่ติดกับจุด highlight = สว่าง, อื่น = จาง
+    segment: {
+      borderColor: ctx => {
+        const a = ctx.p0DataIndex, b = ctx.p1DataIndex;
+        return (a===idx || b===idx) ? color : color+'33';
+      },
+      borderWidth: ctx => {
+        const a = ctx.p0DataIndex, b = ctx.p1DataIndex;
+        return (a===idx || b===idx) ? 2.5 : 1.2;
+      }
+    }
+  };
+}
+
+// hlBarDS: แท่งเดือนที่เลือกสีเต็ม, แท่งอื่นจาง
+function hlBarDS(label, data, color, selMonth, isHoriz=false) {
+  const idx = MONTHS.indexOf(selMonth);
+  const solidColor = color;
+  const fadeColor  = color.includes('rgba') 
+    ? color.replace(/[\d.]+\)$/, '0.15)')
+    : color + '26'; // ~15% opacity hex
+  const bgColors = MONTHS.map((_,i) => i===idx ? solidColor : fadeColor);
+  return { label, data, backgroundColor: bgColors, borderRadius:6, borderSkipped:false, borderWidth:0 };
+}
+
+const charts = {};
+function makeChart(id, type, labels, datasets, extra={}) {
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id); if(!ctx) return;
+  const base = cDef();
+  const isHoriz = extra.indexAxis === 'y';
+
+  // กราฟแนวนอน (indexAxis:'y'): แกน X = ตัวเลข, แกน Y = label (ชื่อ)
+  // กราฟปกติ: แกน X = label (เดือน/ชื่อ), แกน Y = ตัวเลข
+  if(isHoriz) {
+    base.scales.x.ticks.callback = v => fmtTick(v);
+    base.scales.y.ticks.callback = undefined; // Y = ชื่อ Sub DC — แสดงตามปกติ
+  }
+  // กราฟปกติ: X = label (เดือน) ไม่ต้อง format, Y = ตัวเลข (จัดการใน cDef แล้ว)
+
+  const plugins = {
+    ...base.plugins,
+    legend: base.plugins.legend,
+    tooltip: {...base.plugins.tooltip, ...(extra.plugins?.tooltip||{})}
+  };
+  charts[id] = new Chart(ctx, {
+    type, data:{labels,datasets},
+    options:{...base, ...extra, plugins, scales:{...base.scales,...(extra.scales||{})}}
+  });
+}
+
+// Tooltips
+const revTip  = {callbacks:{label:ctx=>{ const v=ctx.chart.options.indexAxis==='y'?ctx.parsed.x:ctx.parsed.y; return ' ฿'+fmtNum(Math.round(v||0)); }}};
+const boxTip  = {callbacks:{label:ctx=>{ const v=ctx.chart.options.indexAxis==='y'?ctx.parsed.x:ctx.parsed.y; return ' '+fmtNum(Math.round(v||0))+' กล่อง'; }}};
+const prodTip = {callbacks:{label:ctx=>{ const v=ctx.chart.options.indexAxis==='y'?ctx.parsed.x:ctx.parsed.y; return ' '+(v!=null?v.toFixed(2):'-')+' กล่อง/คน/วัน'; }}};
+const dayTip  = {callbacks:{label:ctx=>' '+Math.round(ctx.parsed.y||0)+' วัน'}};
+
+// ══════════════════════════════════════════════════════
+// PERIOD STATE — แยกต่อ Tab
+// ══════════════════════════════════════════════════════
+const periodState = {
+  overview:  {mode:'ytd', month:'APR'},
+  dc:        {mode:'ytd', month:'APR'},
+  shop:      {mode:'ytd', month:'APR'},
+  droppoint: {mode:'ytd', month:'APR'},
+};
+
+function updatePeriodBarUI(tab) {
+  const s=periodState[tab], isM=s.mode==='month';
+  document.getElementById(`pb-${tab}-ytd`)  ?.classList.toggle('active',!isM);
+  document.getElementById(`pb-${tab}-month`)?.classList.toggle('active',isM);
+  const ms=document.getElementById(`ms-${tab}`);
+  if(ms){ ms.classList.toggle('show',isM); if(isM) ms.value=s.month; }
+  const pill=document.getElementById(`pbadge-${tab}`);
+  if(pill) pill.textContent = isM ? `รายเดือน · ${MONTH_TH[s.month]}` : 'YTD · 4 เดือน';
+  const momEl=document.getElementById(`mom-${tab}`);
+  if(momEl && isM) {
+    const src=tab==='dc'?byGroup('DC'):tab==='shop'?byGroup('Shop'):tab==='droppoint'?byGroup('Drop Point'):RAW;
+    const mom=getMoMTab(src,'totalRevenue',tab);
+    if(mom!==null){
+      const up=parseFloat(mom)>=0;
+      momEl.textContent=(up?'▲ ':'▼ ')+Math.abs(mom)+'% vs เดือนก่อน';
+      momEl.className='period-mom '+(up?'up':'dn');
+      momEl.style.display='';
+    } else momEl.style.display='none';
+  } else if(momEl) momEl.style.display='none';
+}
+
+function setPeriod(mode,tab){ periodState[tab].mode=mode; updatePeriodBarUI(tab); rerenderTab(tab); }
+function setMonth(month,tab){ periodState[tab].month=month; periodState[tab].mode='month'; updatePeriodBarUI(tab); rerenderTab(tab); }
+function rerenderTab(tab){
+  if(tab==='overview')  renderOverview();
+  if(tab==='dc')        renderDC();
+  if(tab==='shop')      { if(shopMode==='all') renderShopAll(); else { const v=document.getElementById('shop-select').value; if(v) renderShopSingle(v); }}
+  if(tab==='droppoint') { if(dpMode==='all')   renderDPAll();  else { const v=document.getElementById('dp-select').value;   if(v) renderDPSingle(v);  }}
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER — OVERVIEW
+// ══════════════════════════════════════════════════════
+function renderOverview() {
+  const tab='overview', s=periodState[tab];
+  const all=filterP(RAW,tab);
+  const totalRev=all.reduce((a,r)=>a+r.totalRevenue,0);
+  const totalBox=all.reduce((a,r)=>a+r.totalBoxes,0);
+  const pvAll=prodByMonth(byGroup('Shop'));
+  const pvSel=s.mode==='ytd'?pvAll:[pvAll[MONTHS.indexOf(s.month)]];
+  const avgProd=pvSel.filter(Boolean).reduce((a,b)=>a+b,0)/(pvSel.filter(Boolean).length||1);
+  const sub=s.mode==='ytd'?'JAN–APR 2026':MONTH_TH_FULL[s.month]+' 2026';
+
+  buildKPI('kpi-overview',[
+    {color:'blue', icon:'💰',label:'ยอดขายรวม (ทุก Group)',     value:fmtBaht(totalRev), sub, badge:s.mode==='ytd'?'4 เดือน':'รายเดือน',bc:'blue'},
+    {color:'teal', icon:'📦',label:'กล่องรวม (ทุก Group)',      value:fmtNum(Math.round(totalBox)), sub:'กล่องทั้งหมด'},
+    {color:'green',icon:'⚡',label:'Productivity เฉลี่ย (Shop)',value:fmtProd(avgProd)+' กล่อง/คน/วัน', sub:'กล่อง÷คน÷วัน',badge:'Shop Only',bc:'green'},
+    {color:'amber',icon:'👥',label:'กำลังคน Shop',              value:'19 คน', sub:'ใน 9 สาขา'},
+  ]);
+
+  const hlM = m => s.mode==='ytd' || m===s.month;
+  const revAll = sumByMonth(RAW,'totalRevenue');
+  const revDS  = s.mode==='ytd'
+    ? lineDS('ยอดขาย', revAll, C.sky)
+    : hlLineDS('ยอดขาย', revAll, C.sky, s.month);
+  makeChart('ch-ov-revenue','line',MONTHS.map(m=>MONTH_TH[m]),[revDS],{plugins:{tooltip:revTip}});
+  makeChart('ch-ov-prod','line',MONTHS.map(m=>MONTH_TH[m]),[lineDS('Prod',pvAll,C.green)],{plugins:{tooltip:prodTip}});
+
+  const rb=sumBySubDC(all,'totalRevenue');
+  makeChart('ch-ov-rev-bar','bar',rb.map(r=>shortName(r[0])),[barDS('ยอดขาย',rb.map(r=>r[1]),palette)],{indexAxis:'y',plugins:{tooltip:revTip}});
+  const bb=sumBySubDC(all,'totalBoxes');
+  makeChart('ch-ov-box-bar','bar',bb.map(r=>shortName(r[0])),[barDS('กล่อง',bb.map(r=>r[1]),palette)],{indexAxis:'y',plugins:{tooltip:boxTip}});
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER — DC
+// ══════════════════════════════════════════════════════
+function renderDC() {
+  const tab='dc', s=periodState[tab];
+  const allDC=byGroup('DC'), data=filterP(allDC,tab);
+  const totalRev=data.reduce((a,r)=>a+r.totalRevenue,0);
+  const totalBox=data.reduce((a,r)=>a+r.totalBoxes,0);
+  const sub=s.mode==='ytd'?'JAN–APR 2026':MONTH_TH_FULL[s.month]+' 2026';
+  const mom=getMoMTab(allDC,'totalRevenue',tab);
+
+  buildKPI('kpi-dc',[
+    {color:'blue', icon:'💰',label:'ยอดขาย — DC เชียงใหม่', value:fmtBaht(totalRev), sub},
+    {color:'teal', icon:'📦',label:'กล่องรวม — DC เชียงใหม่',value:fmtNum(Math.round(totalBox)), sub:'กล่องทั้งหมด'},
+    mom!=null ? {color:parseFloat(mom)>=0?'green':'red', icon:parseFloat(mom)>=0?'📈':'📉', label:'เทียบเดือนก่อน', value:(parseFloat(mom)>=0?'▲ ':'▼ ')+Math.abs(mom)+'%', sub:'Month-over-Month'} : null,
+  ]);
+
+  const hlM = m => s.mode==='ytd' || m===s.month;
+  const revAllDC  = sumByMonth(allDC,'totalRevenue');
+  const boxAllDC  = sumByMonth(allDC,'totalBoxes');
+  const revDCDS   = s.mode==='ytd'
+    ? lineDS('ยอดขาย', revAllDC, C.sky)
+    : hlLineDS('ยอดขาย', revAllDC, C.sky, s.month);
+  const boxDCDS   = s.mode==='ytd'
+    ? barDS('กล่อง', boxAllDC, C.blueA)
+    : hlBarDS('กล่อง', boxAllDC, C.blueA, s.month);
+  makeChart('ch-dc-revenue','line',MONTHS.map(m=>MONTH_TH[m]),[revDCDS],{plugins:{tooltip:revTip}});
+  makeChart('ch-dc-boxes','bar',MONTHS.map(m=>MONTH_TH[m]),[boxDCDS],{plugins:{tooltip:boxTip}});
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER — SHOP
+// ══════════════════════════════════════════════════════
+let shopMode='all';
+function initShopDD() {
+  const sel=document.getElementById('shop-select'); if(sel.options.length>1) return;
+  [...new Set(RAW.filter(r=>r.group==='Shop').map(r=>r.subDC))].sort().forEach(v=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=v.replace('Shop ',''); sel.appendChild(o);
+  });
+}
+function setShopMode(mode) {
+  shopMode=mode;
+  const sel=document.getElementById('shop-select');
+  document.getElementById('shop-mode-all').classList.toggle('active',mode==='all');
+  document.getElementById('shop-mode-single').classList.toggle('active',mode==='single');
+  sel.disabled=(mode==='all');
+  document.getElementById('shop-view-all').style.display   =mode==='all'?'contents':'none';
+  document.getElementById('shop-view-single').style.display=mode==='single'?'flex':'none';
+  if(mode==='all') renderShopAll(); else if(sel.value) renderShopSingle(sel.value);
+}
+function onShopSelect() { const v=document.getElementById('shop-select').value; if(v) renderShopSingle(v); }
+function renderShop() { initShopDD(); renderShopAll(); }
+
+function renderShopAll() {
+  const tab='shop', s=periodState[tab];
+  const allShop=byGroup('Shop'), data=filterP(allShop,tab);
+  const wmp=data.filter(r=>r.manpower>0);
+  const totalRev=data.reduce((a,r)=>a+r.totalRevenue,0);
+  const totalBox=data.reduce((a,r)=>a+r.totalBoxes,0);
+  const totalMP=[...new Set(wmp.map(r=>r.subDC))].reduce((a,dc)=>{const f=wmp.find(r=>r.subDC===dc);return a+(f?f.manpower:0);},0);
+  const pvAll=prodByMonth(allShop);
+  const pvSel=s.mode==='ytd'?pvAll:[pvAll[MONTHS.indexOf(s.month)]];
+  const avgProd=pvSel.filter(Boolean).reduce((a,b)=>a+b,0)/(pvSel.filter(Boolean).length||1);
+  const sub=s.mode==='ytd'?'JAN–APR 2026':MONTH_TH_FULL[s.month]+' 2026';
+
+  buildKPI('kpi-shop',[
+    {color:'blue', icon:'💰',label:'ยอดขายรวม — Shop',    value:fmtBaht(totalRev),  sub},
+    {color:'teal', icon:'📦',label:'กล่องรวม — Shop',     value:fmtNum(Math.round(totalBox)), sub:'กล่องทั้งหมด'},
+    {color:'green',icon:'👥',label:'กำลังคน Shop',        value:totalMP+' คน',       sub:'มีข้อมูล Manpower',badge:'9 สาขา',bc:'green'},
+    {color:'amber',icon:'⚡',label:'Productivity เฉลี่ย',value:fmtProd(avgProd)+' กล่อง/คน/วัน', sub:'กล่อง÷คน÷วัน',badge:'Shop Only',bc:'amber'},
+  ]);
+
+  const hlM = m => s.mode==='ytd' || m===s.month;
+  const revAllShop = sumByMonth(allShop,'totalRevenue');
+  const revShopDS  = s.mode==='ytd'
+    ? lineDS('ยอดขาย', revAllShop, C.sky)
+    : hlLineDS('ยอดขาย', revAllShop, C.sky, s.month);
+  const prodShopDS = s.mode==='ytd'
+    ? lineDS('Prod', pvAll, C.green)
+    : hlLineDS('Prod', pvAll, C.green, s.month);
+  makeChart('ch-shop-revenue','line',MONTHS.map(m=>MONTH_TH[m]),[revShopDS],{plugins:{tooltip:revTip}});
+  makeChart('ch-shop-prod','line',MONTHS.map(m=>MONTH_TH[m]),[prodShopDS],{plugins:{tooltip:prodTip}});
+  const rb=sumBySubDC(data,'totalRevenue');
+  makeChart('ch-shop-rev-bar','bar',rb.map(r=>shortName(r[0])),[barDS('ยอดขาย',rb.map(r=>r[1]),palette)],{indexAxis:'y',plugins:{tooltip:revTip}});
+  const pb=prodBySubDC(data);
+  makeChart('ch-shop-prod-bar','bar',pb.map(r=>shortName(r[0])),[barDS('Prod',pb.map(r=>r[1]),pb.map((_,i)=>palette[i%palette.length]))],{indexAxis:'y',plugins:{tooltip:prodTip}});
+}
+
+function renderShopSingle(subDC) {
+  const data=RAW.filter(r=>r.subDC===subDC); if(!data.length) return;
+  const totalRev=data.reduce((a,r)=>a+r.totalRevenue,0);
+  const totalBox=data.reduce((a,r)=>a+r.totalBoxes,0);
+  const mp=data[0].manpower;
+  const pv=MONTHS.map(m=>{const r=data.find(d=>d.month===m);return(r&&mp>0)?r.totalBoxes/(mp*r.workingDays):null;});
+  const avgProd=pv.filter(Boolean).reduce((a,b)=>a+b,0)/(pv.filter(Boolean).length||1);
+  const name=subDC.replace('Shop ','');
+  document.getElementById('sh-title-rev').textContent ='ยอดขายรายเดือน — '+name;
+  document.getElementById('sh-title-box').textContent ='กล่องรายเดือน — '+name;
+  document.getElementById('sh-title-prod').textContent='Productivity รายเดือน — '+name;
+  buildKPI('kpi-shop',[
+    {color:'blue', icon:'💰',label:'ยอดขายรวม — '+name,   value:fmtBaht(totalRev),  sub:'JAN–APR 2026'},
+    {color:'teal', icon:'📦',label:'กล่องรวม — '+name,    value:fmtNum(Math.round(totalBox)), sub:'กล่องทั้งหมด'},
+    {color:'green',icon:'👥',label:'กำลังคน',             value:mp+' คน',            sub:'ประจำสาขา',badge:name,bc:'green'},
+    {color:'amber',icon:'⚡',label:'Productivity เฉลี่ย',value:mp>0?fmtProd(avgProd)+' กล่อง/คน/วัน':'N/A', sub:'กล่อง÷คน÷วัน'},
+  ]);
+  makeChart('ch-shop-s-revenue','bar',MONTHS.map(m=>MONTH_TH[m]),[barDS('ยอดขาย',MONTHS.map(m=>{const r=data.find(d=>d.month===m);return r?r.totalRevenue:0;}),C.skyA)],{plugins:{tooltip:revTip}});
+  makeChart('ch-shop-s-boxes','bar',MONTHS.map(m=>MONTH_TH[m]),[barDS('กล่อง',MONTHS.map(m=>{const r=data.find(d=>d.month===m);return r?r.totalBoxes:0;}),C.blueA)],{plugins:{tooltip:boxTip}});
+  if(mp>0){
+    makeChart('ch-shop-s-prod','line',MONTHS.map(m=>MONTH_TH[m]),[lineDS('Prod',pv,C.green)],{plugins:{tooltip:prodTip}});
+    makeChart('ch-shop-s-mp','bar',MONTHS.map(m=>MONTH_TH[m]),[barDS('วันทำงาน',MONTHS.map(m=>{const r=data.find(d=>d.month===m);return r?r.workingDays:0;}),C.amberA)],{plugins:{tooltip:dayTip}});
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER — DROP POINT
+// ══════════════════════════════════════════════════════
+let dpMode='all';
+function initDPDD() {
+  const sel=document.getElementById('dp-select'); if(sel.options.length>1) return;
+  [...new Set(RAW.filter(r=>r.group==='Drop Point').map(r=>r.subDC))].sort().forEach(v=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=shortName(v); sel.appendChild(o);
+  });
+}
+function setDPMode(mode) {
+  dpMode=mode;
+  const sel=document.getElementById('dp-select');
+  document.getElementById('dp-mode-all').classList.toggle('active',mode==='all');
+  document.getElementById('dp-mode-single').classList.toggle('active',mode==='single');
+  sel.disabled=(mode==='all');
+  document.getElementById('dp-view-all').style.display   =mode==='all'?'contents':'none';
+  document.getElementById('dp-view-single').style.display=mode==='single'?'flex':'none';
+  if(mode==='all') renderDPAll(); else if(sel.value) renderDPSingle(sel.value);
+}
+function onDPSelect() { const v=document.getElementById('dp-select').value; if(v) renderDPSingle(v); }
+function renderDropPoint() { initDPDD(); renderDPAll(); }
+
+function renderDPAll() {
+  const tab='droppoint', s=periodState[tab];
+  const allDP=byGroup('Drop Point'), data=filterP(allDP,tab);
+  const totalRev=data.reduce((a,r)=>a+r.totalRevenue,0);
+  const totalBox=data.reduce((a,r)=>a+r.totalBoxes,0);
+  const count=[...new Set(allDP.map(r=>r.subDC))].length;
+  const sub=s.mode==='ytd'?'JAN–APR 2026':MONTH_TH_FULL[s.month]+' 2026';
+  const mom=getMoMTab(allDP,'totalRevenue',tab);
+
+  buildKPI('kpi-dp',[
+    {color:'blue', icon:'💰',label:'ยอดขายรวม — Drop Point',value:fmtBaht(totalRev), sub},
+    {color:'teal', icon:'📦',label:'กล่องรวม — Drop Point', value:fmtNum(Math.round(totalBox)), sub:'กล่องทั้งหมด'},
+    {color:'amber',icon:'📍',label:'จำนวน Drop Point',      value:count+' สาขา',      sub:'ทั้งหมดในระบบ'},
+    mom!=null ? {color:parseFloat(mom)>=0?'green':'red', icon:parseFloat(mom)>=0?'📈':'📉', label:'เทียบเดือนก่อน', value:(parseFloat(mom)>=0?'▲ ':'▼ ')+Math.abs(mom)+'%', sub:'Month-over-Month'} : null,
+  ]);
+
+  const hlM = m => s.mode==='ytd' || m===s.month;
+  const revAllDP  = sumByMonth(allDP,'totalRevenue');
+  const boxAllDP  = sumByMonth(allDP,'totalBoxes');
+  const revDPDS   = s.mode==='ytd'
+    ? lineDS('ยอดขาย', revAllDP, C.sky)
+    : hlLineDS('ยอดขาย', revAllDP, C.sky, s.month);
+  const boxDPDS   = s.mode==='ytd'
+    ? barDS('กล่อง', boxAllDP, C.tealA)
+    : hlBarDS('กล่อง', boxAllDP, C.tealA, s.month);
+  makeChart('ch-dp-revenue','line',MONTHS.map(m=>MONTH_TH[m]),[revDPDS],{plugins:{tooltip:revTip}});
+  makeChart('ch-dp-boxes','bar',MONTHS.map(m=>MONTH_TH[m]),[boxDPDS],{plugins:{tooltip:boxTip}});
+  const rb=sumBySubDC(data,'totalRevenue');
+  makeChart('ch-dp-rev-bar','bar',rb.map(r=>shortName(r[0])),[barDS('ยอดขาย',rb.map(r=>r[1]),palette)],{indexAxis:'y',plugins:{tooltip:revTip}});
+  const bb=sumBySubDC(data,'totalBoxes');
+  makeChart('ch-dp-box-bar','bar',bb.map(r=>shortName(r[0])),[barDS('กล่อง',bb.map(r=>r[1]),palette)],{indexAxis:'y',plugins:{tooltip:boxTip}});
+}
+
+function renderDPSingle(subDC) {
+  const data=RAW.filter(r=>r.subDC===subDC); if(!data.length) return;
+  const totalRev=data.reduce((a,r)=>a+r.totalRevenue,0);
+  const totalBox=data.reduce((a,r)=>a+r.totalBoxes,0);
+  const apr=data.find(r=>r.month==='APR')?.totalRevenue||0;
+  const mar=data.find(r=>r.month==='MAR')?.totalRevenue||0;
+  const mom=mar?((apr-mar)/mar*100).toFixed(1):0;
+  const name=shortName(subDC);
+  document.getElementById('dp-title-rev').textContent='ยอดขายรายเดือน — '+name;
+  document.getElementById('dp-title-box').textContent='กล่องรายเดือน — '+name;
+  buildKPI('kpi-dp',[
+    {color:'blue', icon:'💰',label:'ยอดขายรวม — '+name, value:fmtBaht(totalRev),  sub:'JAN–APR 2026'},
+    {color:'teal', icon:'📦',label:'กล่องรวม — '+name,  value:fmtNum(Math.round(totalBox)), sub:'กล่องทั้งหมด'},
+    {color:'amber',icon:'📅',label:'ยอดขาย APR 2026',  value:fmtBaht(apr), sub:'vs MAR', badge:(mom>=0?'▲ ':'▼ ')+Math.abs(mom)+'%',bc:mom>=0?'green':'amber'},
+  ]);
+  makeChart('ch-dp-s-revenue','bar',MONTHS.map(m=>MONTH_TH[m]),[barDS('ยอดขาย',MONTHS.map(m=>{const r=data.find(d=>d.month===m);return r?r.totalRevenue:0;}),C.skyA)],{plugins:{tooltip:revTip}});
+  makeChart('ch-dp-s-boxes','bar',MONTHS.map(m=>MONTH_TH[m]),[barDS('กล่อง',MONTHS.map(m=>{const r=data.find(d=>d.month===m);return r?r.totalBoxes:0;}),C.tealA)],{plugins:{tooltip:boxTip}});
+}
+
+// ══════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════
+const rendered={};
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+tab)?.classList.add('active');
+  document.querySelector(`.sb-btn[data-tab="${tab}"]`)?.classList.add('active');
+  if(!rendered[tab]){
+    rendered[tab]=true;
+    setTimeout(()=>{
+      if(tab==='overview')  renderOverview();
+      if(tab==='dc')        renderDC();
+      if(tab==='shop')      renderShop();
+      if(tab==='droppoint') renderDropPoint();
+    },60);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// DARK MODE
+// ══════════════════════════════════════════════════════
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  document.querySelector('.dark-btn').textContent = document.body.classList.contains('dark') ? '☀️ Light' : '🌙 Dark';
+  Object.keys(rendered).forEach(t=>{ rendered[t]=false; });
+  const active=document.querySelector('.sb-btn.active')?.dataset.tab;
+  if(active){ rendered[active]=true; setTimeout(()=>rerenderTab(active),30); }
+}
+
+// ══════════════════════════════════════════════════════
+// CLOCK + INIT
+// ══════════════════════════════════════════════════════
+function tick() {
+  const n=new Date();
+  document.getElementById('datetime').innerHTML=
+    n.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})+'<br>'+
+    n.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+tick(); setInterval(tick,1000);
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  rendered.overview=true;
+  setTimeout(renderOverview, 80);
+});
+
+// Redraw charts on orientation change / resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    Object.values(charts).forEach(c => { try{ c.resize(); }catch(e){} });
+  }, 200);
+});
+</script>
+</body>
+</html>
